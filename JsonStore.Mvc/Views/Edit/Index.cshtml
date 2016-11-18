@@ -1,0 +1,88 @@
+﻿@using Extensions
+@using Extensions.Models
+
+@{
+    Layout = "~/Views/Shared/EditLayout.cshtml";
+    ViewBag.Title = "Edit Shared Records";
+    Generics.Models.JsonFile fileModel = Generics.Models.JsonFile.GetJsonFile(Convert.ToInt64(Request.QueryString["id"]));
+}
+
+@section scripts {
+    <script type="text/javascript" src="~/scripts/jsontoformscript"></script>
+    @if (!String.IsNullOrEmpty(Request.QueryString["id"]))
+    {
+        <script>
+            var id = '@Request.QueryString["id"]';
+            
+            var model = @Html.Raw(fileModel.ToJson());
+        </script>
+    }
+}
+
+@if (String.IsNullOrEmpty(Request.QueryString["id"]))
+{
+    <h2>Click on a Record to Edit</h2>
+    <div class="row" ng-controller="EditJsonCtrl">
+        <div class="col-sm-12">
+            <div class="row pad-15">
+                <div class="col-sm-12" ng-repeat="file in files.where('BackupOf', 0)">
+                    <h4>
+                        <a class="pointer" ng-href="?id={{file.ID}}">{{decodeFileName(file.Name)}}</a>
+                        <label class="label label-info pull-right margin-5">{{main.Date.Get(file.LastUpdateTime).ago()}}</label>
+                        <a class="pointer" ng-href="?id={{file.ID}}">
+                            <label class="label label-default pull-right margin-5 pointer">Click to Edit</label>
+                        </a>
+                    </h4>
+                    <p>{{file.Description}}</p>
+                </div>
+                <div class="col-sm-12 text-center bold" ng-if="files.isEmpty()">
+                    <h4>There are no editable files in this listing</h4>
+                </div>
+            </div>
+        </div>
+    </div>
+}
+else
+{
+    <div ng-controller="EditJsonCtrl">
+        <div class="row pad-15">
+            <div class="col-sm-12">
+                <label class="margin-5">Records: </label>
+                <label class="label label-primary pointer margin-5 inline-block" ng-repeat="file in files.where('BackupOf', 0)"
+                       ng-click="redirect(main.url('edit?id=') + file.ID)"
+                       title="{{String.isNullOrEmpty(file.Description) ? 'Click to open' : file.Description}}">
+                    {{decodeFileName(file.Name)}}&nbsp;
+                </label>
+            </div>
+            <div class="col-sm-12" ng-if="files.where('BackupOf', model.ID).length > 0">
+                <label class="margin-5">Backups: </label>
+                <label class="label label-default pointer margin-5 inline-block" ng-repeat="file in files.where('BackupOf', model.ID)"
+                       ng-click="redirect(main.url('edit?id=') + file.ID)"
+                       title="{{String.isNullOrEmpty(file.Description) ? 'Click to open' : file.Description}}">
+                    {{decodeFileName(file.Name)}}&nbsp;
+                </label>
+            </div>
+        </div>
+        <h2>
+            Edit {{decodeFileName(model.Name)}}
+            <label class="label label-info pull-right margin-5 font18">{{main.Date.Get(model.LastUpdateTime).ago()}}</label>
+            <label class="label label-default pull-right margin-5 pointer font18" ng-click="model.submit()">Save File</label>
+            <label class="label label-primary pull-right margin-5 pointer font18" 
+                   title="Click to Restore this file as [{{decodeFileName(files.where('ID', model.BackupOf).first().Name)}}]" 
+                   ng-if="model.BackupOf > 0" ng-click="model.restore()">Restore</label>
+        </h2>
+        <div class="row">
+            <div class="col-sm-12 margin-left-5">{{model.Description}}</div>
+        </div>
+        <div class="row">
+            <div class="col-sm-12">
+                <json-form path="model.Path" edit-object="true" edit-array="true" auto-save="true"></json-form>
+            </div>
+        </div>
+        <div class="row pad-15">
+            <literal html="@Site.ResolveURL(fileModel.Path)">
+
+            </literal>
+        </div>
+    </div>
+}

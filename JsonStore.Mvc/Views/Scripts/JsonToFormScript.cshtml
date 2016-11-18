@@ -1,0 +1,574 @@
+﻿@using Extensions
+@using Extensions.Models
+
+<script id="miscellaneous">
+    function getStringType(str) {
+        if (str.toString().toLowerCase().indexOf("image:") == 0) return "image";
+        if (str.toString().toLowerCase().indexOf("url:") == 0) return "url";
+        return "string";
+    }
+
+    function getType(obj) {
+        if (!obj && obj != false) return "string";
+        if (obj === 1 || obj === 0) return "number";
+        if (obj === true || obj === false) return "boolean";
+        if (obj instanceof String || typeof obj == "string") {
+            if (obj.search(/.+@@.+\..+/i) >= 0) return "email";
+            if (obj.search(/(\d+)([0-9]{9})$/) == 0) return "phone";
+            return "string";
+        }
+        if (new Date(obj) != "Invalid Date" && typeof obj != "number") {
+            return "date";
+        }
+        if (Array.isArray(obj)) {
+            if (obj.length == 0) return "array";
+            else if (typeof obj[0] == "string") return "arrayofstrings";
+            else if (typeof obj[0] == "number") return "arrayofnumbers";
+            else if (typeof obj[0] == "boolean") return "arrayofbooleans";
+            else return "array";
+        }
+        return typeof obj;
+    }
+
+    function createEvent(name, obj) {
+        var evt = document.createEvent("Event");
+        evt.initEvent(name, true, true);
+        evt.data = obj;
+        dispatchEvent(evt);
+    }
+
+    function getArraySchema(arr) {
+        if (!Array.isArray(arr)) return getObjectSchema(arr);
+        var ret = [];
+        arr.forEach(function (item) {
+            var rett = getObjectSchema(item);
+            ret.push(rett);
+        });
+        return ret;
+    }
+
+    function getObjectSchema(item) {
+        if (Array.isArray(item)) return getArraySchema(item);
+        if (getType(item) == "date" || typeof item == "date") return "date";
+        if (typeof item == "string") return "string";
+        if (typeof item == "boolean") return "boolean";
+        if (typeof item == "number") return "number";
+        var ret = {};
+        for (var key in item) {
+            if (item.hasOwnProperty(key)) {
+                if (typeof item[key] == "object") {
+                    if (Array.isArray(item[key]) == true) {
+                        var type = getType(item[key]);
+                        ret[key] = type;
+                    }
+                    else {
+                        var type = getType(item[key]);
+                        if (type != "string" && type != "date") {
+                            ret[key] = "object";
+                        }
+                        else ret[key] = getType(item[key]);
+                    }
+                }
+                else {
+                    ret[key] = getType(item[key]);
+                }
+            }
+        }
+        return ret;
+    }
+
+    function clone(obj) {
+        return JSON.parse(JSON.stringify(obj));
+    }
+
+    function getObjectValue(obj, path, splitter) {
+        path = path || "";
+        if (path == "") return obj;
+        path.split(splitter || ".").reduce(function (memo, part) {
+            if (typeof memo !== "object" || memo[part] === undefined) {
+                return;
+            }
+            return memo[part];
+        }, obj);
+    }
+
+    function setObjectValue(object, path, value) {
+        var a = path.split('.');
+        var o = object;
+        console.log(a[0]);
+        if (a[0].length == 0 || a[0] == '') {
+            o = value;
+            return;
+        }
+        for (var i = 0; i < a.length - 1; i++) {
+            var n = a[i];
+            if (n in o) {
+                o = o[n];
+            } else {
+                o[n] = {};
+                o = o[n];
+            }
+        }
+        o[a[a.length - 1]] = value;
+    }
+
+    function deep(obj, key, value) {
+        if (!key || key == '') return obj;
+        var keys = key.replace(/\[(["']?)([^\1]+?)\1?\]/g, '.$2').replace(/^\./, '').split('.'),
+            root,
+            i = 0,
+            n = keys.length;
+
+        // Set deep value
+        if (arguments.length > 2) {
+
+            root = obj;
+            n--;
+
+            while (i < n) {
+                key = keys[i++];
+                obj = obj[key] = (typeof obj[key] == "object") ? obj[key] : {};
+            }
+
+            obj[keys[i]] = value;
+
+            value = root;
+
+            // Get deep value
+        } else {
+            while ((obj = obj[keys[i++]]) != null && i < n) { };
+            value = i < n ? void 0 : obj;
+        }
+
+        return value;
+    }
+
+    function deleteProp(obj, prop) {
+        var newObj = {}
+        for (var key in obj) {
+            if (key != prop) newObj[key] = obj[key];
+        }
+        obj = newObj;
+        return newObj;
+    }
+
+
+    if (typeof toastr != "undefined") {
+
+        toastr.options = {
+            "closeButton": true,
+            "debug": false,
+            "newestOnTop": false,
+            "progressBar": false,
+            "positionClass": "toast-top-center",
+            "preventDuplicates": true,
+            "onclick": null,
+            "showDuration": "10000",
+            "hideDuration": "1000",
+            "timeOut": "2500",
+            "extendedTimeOut": "1000",
+            "showEasing": "swing",
+            "hideEasing": "linear",
+            "showMethod": "fadeIn",
+            "hideMethod": "fadeOut"
+        }
+    }
+
+    function MsgBox(msg, type) {
+        msg = msg || "Json to Forms";
+        type = type || "success";
+        if (typeof toastr != "undefined") {
+            toastr[type](msg);
+        }
+        else {
+            alert(msg);
+        }
+    }
+</script>
+
+<script id="directives">
+    app.directive("jsonForm", function ($sce, $http) {
+        return {
+            restrict: 'E',
+            scope: {
+                path: '=',
+                data: '=',
+                editObject: '@@',
+                editArray: '@@',
+                saveBtnName: '@@',
+                autoSave: '@@'
+            },
+            templateUrl: ("@Site.GetLeftUrl()scripts/jsontoform"),
+            controller: "JsonFormCtrl",
+            link: function ($scope, element, attrs) {
+                $scope.savetoelement = function () {
+                    element.prop("jsondata", $scope.alldata);
+                    element.jsondata = $scope.alldata;
+                    if (element[0].savefn && typeof element[0].savefn == 'function') {
+                        element[0].savefn();
+                    }
+                    if (element.savefn && typeof element.savefn == 'function') {
+                        element.savefn();
+                    }
+                }
+                if (!$scope.saveBtnName) $scope.saveBtnName = "Save";
+                if ($scope.autoSave) {
+                    element.bind("click", function () {
+                        $scope.savecurrent();
+                        $scope.savetoelement();
+                        $scope.$apply();
+                    });
+
+                    element.bind("keyup", function () {
+                        $scope.savecurrent();
+                        $scope.savetoelement();
+                        $scope.$apply();
+                    });
+                }
+            }
+        }
+    });
+
+    app.directive("imageTextEdit", function ($sce, $http, JsonFormFactory) {
+        return {
+            restrict: 'AE',
+            scope: {
+                url: '=',
+                title: '@@'
+            },
+            templateUrl: '@Site.GetLeftUrl()scripts/directives/image-text-edit.html',
+            link: function ($scope, element, attrs) {
+                $scope.jsonfactory = JsonFormFactory;
+                $scope.getSrc = function () {
+                    return $scope.url.toString().replace(/^image:/, '');
+                }
+                console.log($scope.getSrc());
+            }
+        }
+    });
+
+
+    app.directive("literal", function () {
+        return {
+            restrict: 'AE',
+            template: "<div ng-bind-html='trustHtml(html)'></div>",
+            scope: {
+                html: '@@'
+            },
+            controller: function ($scope, $transclude, $sce, $http) {
+                if (!$scope.html) {
+                    $transclude(function (clone, scope) {
+                        var html = clone[1].outerHTML;
+                        if (!html) html = clone[1].data;
+                        if (html) html = html._HTMLEncode()._replace(' class="ng-scope"', '');
+                        $scope.html = html;
+                    });
+                }
+                $scope.trustHtml = function (f) {
+                    return $sce.trustAsHtml(f);
+                }
+            },
+            link: function ($scope, elements, attrs) {
+                String.prototype._HTMLEncode = function () {
+                    var s = this.valueOf();
+                    var ret = document.createElement("div");
+                    ret.innerText = s;
+                    return ret.innerHTML;
+                }
+            },
+            transclude: true
+        }
+    });
+</script>
+
+<script id="factories">
+    app.factory("JsonFormFactory", function ($sce) {
+        var obj = {}
+        obj.trustHtml = function (f) {
+            return $sce.trustAsHtml(f);
+        }
+        obj.trustUrl = function (url) {
+            return $sce.trustAsResourceUrl(url);
+        }
+        obj.getObjectSchema = getObjectSchema;
+        obj.getArraySchema = getArraySchema;
+        obj.stringify = function (obj) {
+            return JSON.stringify(obj);
+        }
+        obj.Object = Object;
+        obj.String = String;
+        obj.Number = Number;
+        obj.Boolean = Boolean;
+        obj.Date = Date;
+        return obj;
+    });
+</script>
+
+<script id="controllers">
+    app.controller("JsonFormCtrl", function ($scope, $sce, $http, $window, JsonFormFactory) {
+        Array.create = Array.prototype.create;
+        $scope.jsonfactory = JsonFormFactory;
+        $scope.data = $scope.data || []; $scope.data = [];
+        $scope.alldata = JSON.parse(JSON.stringify($scope.data));
+        $scope.schema = $scope.schema || $scope.jsonfactory.getArraySchema($scope.data);
+        $scope.breadcrumbs = ['root'];
+        $scope.getType = getType;
+        $scope.getStringType = getStringType;
+
+        $scope.getcurrentkeys = function () {
+            var keys = $scope.breadcrumbs.from(1);
+            return keys.join('.');
+        }
+
+        $scope.firstObjectIsEmpty = function () {
+            return typeof $scope.data.first() == "undefined";
+            //return Object.keys($scope.data.first()).length == 0;
+        }
+
+        $scope.savecurrent = function () {
+            var keys = $scope.breadcrumbs.from(1);
+            if (keys.length == 0) $scope.alldata = clone($scope.data);
+            else {
+                if (!Array.isArray(deep($scope.alldata, keys.join('.')))) {
+                    console.log("data is not an array");
+                    deep($scope.alldata, keys.join('.'), $scope.data.first());
+                }
+                else {
+                    deep($scope.alldata, keys.join('.'), $scope.data);
+                }
+                //console.log($scope.data);
+            }
+            $scope.savetoelement();
+            if (!$scope.autoSave) {
+                console.log($scope.alldata); //only do these when auto-save is off
+                MsgBox("Data has been saved!", "info");
+            }
+            return $scope.getAllData();
+        }
+
+        $scope.setData = function (response) {
+            console.log(response);
+            if (!Array.isArray(response)) $scope.dataIsObject = true;
+            $scope.data = Array.create(response);
+            $scope.alldata = Array.create(response);
+            $scope.schema = $scope.jsonfactory.getArraySchema($scope.data);
+            $scope.getitems();
+        }
+
+        $scope.getAllData = function () {
+            if ($scope.dataIsObject == true) return $scope.alldata.first();
+            else return $scope.alldata;
+        }
+
+        $scope.resetPath = function () {
+            if ($scope.path) {
+                $scope.jsonfactory.loading = true;
+                if ($scope.path.indexOf("?") < 0) $scope.path += "?r=" + Math.random().toString().split(".")[1];
+                $http.get($scope.jsonfactory.trustUrl($scope.path)).success(function (response) {
+                    if (typeof response != "object") {
+                        response = { "item": response }
+                    }
+                    $scope.setData(response);
+                    delete $scope.jsonfactory.loading;
+                });
+            }
+        }
+        $scope.resetPath();
+
+        $scope.getitems = function () {
+            $scope.data = clone($scope.alldata);
+            var ret = Array.create($scope.data);
+            for (var i = 1; i < $scope.breadcrumbs.length; i++) {
+                ret = ret[$scope.breadcrumbs[i]];
+            }
+            $scope.schema = $scope.jsonfactory.getArraySchema(Array.create(ret));
+            if (Array.isArray(ret) == true) $scope.schema.__roottype__ = "array";
+            $scope.data = Array.create(ret);
+            return $scope.data;
+        }
+
+        $scope.setBreadCrumbsLimit = function (limit) {
+            limit = limit || 1;
+            $scope.breadcrumbs = $scope.breadcrumbs.first(limit);
+            $scope.getitems();
+        }
+
+        $scope.addBreadCrumb = function (key, prevkey, roottype) {
+            if (roottype == "array") $scope.breadcrumbs.push(prevkey);
+            $scope.breadcrumbs.push(key);
+            $scope.getitems();
+        }
+
+        function AttrClass() {
+            AttrClass.i = AttrClass.i || 0;
+            AttrClass.i++;
+            this.attrname = "new_attr_name_" + AttrClass.i;
+            this.schema = "null";
+        }
+
+        $scope.newattr = new AttrClass();
+
+        $scope.addAttribute = function () {
+            if ($scope.newattr.schema == 'null') MsgBox("Please select a schema name", "error");
+            else {
+                var obj = null
+                if ($scope.newattr.schema == "string") obj = "";
+                if ($scope.newattr.schema == "number") obj = 0;
+                if ($scope.newattr.schema == "date") obj = new Date();
+                if ($scope.newattr.schema == "boolean") obj = false;
+                if ($scope.newattr.schema == "object") obj = {};
+                if ($scope.newattr.schema == "array") obj = [];
+                $scope.data.each(function (item) {
+                    item[$scope.newattr.attrname] = obj;
+                });
+                MsgBox("Attribute " + $scope.newattr.attrname + " added");
+                $scope.newattr = new AttrClass();
+                $scope.schema = $scope.jsonfactory.getArraySchema($scope.data);
+            }
+        }
+
+        $scope.removeAttribute = function (prop) {
+            if (confirm("Are you sure you want to remove attribute [" + prop + "]") == true) {
+                for (var i = 0; i < $scope.data.length; i++) {
+                    var item = $scope.data[i];
+                    //console.log(item, prop);
+                    if (item[prop]) item = deleteProp(item, prop);
+                    //console.log(item, prop);
+                }
+                $scope.data.each(function (item) {
+                    delete item[prop];
+                });
+            }
+        }
+
+        $scope.showModifiers = false;
+        $window.onkeydown = function (ev) {
+            if (ev.key.toLowerCase().indexOf("control") >= 0) {
+                $scope.showModifiers = true;
+                //console.log($scope.showModifiers);
+                $scope.$applyAsync();
+            }
+        }
+        $window.onkeyup = function (ev) {
+            if (ev.key.toLowerCase().indexOf("control") >= 0) {
+                $scope.showModifiers = false;
+                //console.log($scope.showModifiers);
+                $scope.$applyAsync();
+            }
+        }
+
+        $scope.duplicateData = function (index) {
+            $scope.data = $scope.data.insert(clone($scope.data[index]), index);
+            $scope.schema = $scope.jsonfactory.getArraySchema($scope.data);
+            console.log($scope.data, $scope.schema);
+        }
+
+        $scope.addItem = function () {
+            if ($scope.data.isEmpty()) {
+                var type = prompt("What type of object do you wish to add? [string, object, date, boolean, array, number]");
+                type = type.toLowerCase();
+                if (type == 'string') {
+                    $scope.data.push("");
+                    $scope.schema = $scope.jsonfactory.getArraySchema($scope.data);
+                }
+                else if (type == 'number') {
+                    $scope.data.push(0);
+                    $scope.schema = $scope.jsonfactory.getArraySchema($scope.data);
+                }
+                else if (type == 'date') {
+                    $scope.data.push(new Date());
+                    $scope.schema = $scope.jsonfactory.getArraySchema($scope.data);
+                }
+                else if (type == 'boolean') {
+                    $scope.data.push(false);
+                    $scope.schema = $scope.jsonfactory.getArraySchema($scope.data);
+                }
+                else if (type == 'object') {
+                    $scope.data.push({});
+                    $scope.schema = $scope.jsonfactory.getArraySchema($scope.data);
+                }
+                else if (type == 'array') {
+                    $scope.data.push([]);
+                    $scope.schema = $scope.jsonfactory.getArraySchema($scope.data);
+                }
+            }
+            else {
+                if (getType($scope.data.first()) == 'object') {
+                    var newitem = null;
+                    if (Array.isArray($scope.schema)) newitem = clone($scope.schema.first());
+                    else newitem = clone($scope.schema);
+                    for (var key in newitem) {
+                        if (newitem[key] == "string" || newitem[key] == "email" || newitem[key] == "phone") newitem[key] = "";
+                        if (newitem[key] == "number") newitem[key] = 0;
+                        if (newitem[key] == "date") newitem[key] = new Date();
+                        if (newitem[key] == "boolean") newitem[key] = false;
+                        if (newitem[key] == "object") newitem[key] = {};
+                        if (newitem[key] == "array") newitem[key] = [];
+                    }
+                    $scope.data.push(newitem);
+                    $scope.schema = $scope.jsonfactory.getArraySchema($scope.data);
+                }
+                else if (getType($scope.data.first()) == 'string') {
+                    $scope.data.push("");
+                    $scope.schema = $scope.jsonfactory.getArraySchema($scope.data);
+                }
+                else if (getType($scope.data.first()) == 'number') {
+                    $scope.data.push(0);
+                    $scope.schema = $scope.jsonfactory.getArraySchema($scope.data);
+                }
+                else if (getType($scope.data.first()) == 'date') {
+                    $scope.data.push(new Date());
+                    $scope.schema = $scope.jsonfactory.getArraySchema($scope.data);
+                }
+                else if (getType($scope.data.first()) == 'boolean') {
+                    $scope.data.push(false);
+                    $scope.schema = $scope.jsonfactory.getArraySchema($scope.data);
+                }
+            }
+
+        }
+
+        $scope.removeIndex = function (index) {
+            $scope.data.removeAt(index);
+            $scope.schema = $scope.jsonfactory.getArraySchema($scope.data);
+            console.log("removed item at index " + index);
+        }
+
+        $scope.reset = function () {
+            $scope.data = clone($scope.alldata);
+            $scope.breadcrumbs = $scope.breadcrumbs.first(1);
+            $scope.schema = $scope.jsonfactory.getArraySchema($scope.data);
+        }
+
+        $scope.currenttype = function () {
+            var ret = ""
+            if (!Array.isArray(deep($scope.alldata, $scope.getcurrentkeys()))) ret = "object";
+            else ret = "array";
+            //console.log(ret, $scope.getcurrentkeys(), deep($scope.alldata, $scope.getcurrentkeys()));
+            return ret;
+        }
+
+        $scope.getobjectkeys = function (obj) {
+            return Object.keys(obj);
+        }
+
+        $scope.todate = function (item) {
+            return item.toString().toDate();
+        }
+
+        $scope.resetobj = function (val, type) {
+            if (!val) {
+                if (type == "date") {
+                    val = new Date();
+                }
+            }
+        }
+
+        $scope.decodeName = function (filename) {
+            filename = filename || "";
+            filename = filename.replace(/([A-Z])/g, ' $1').replace(/^./, function (str) { return str.toUpperCase(); });
+            filename = filename._replace("-", " ")._capitaliseEachWord();
+            return filename;
+        }
+    });
+</script>

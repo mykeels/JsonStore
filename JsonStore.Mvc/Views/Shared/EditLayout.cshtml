@@ -1,0 +1,251 @@
+﻿@using System.Configuration
+@using Extensions
+@using Extensions.Models
+
+@{
+    Generics.Models.User siteUser = ((Generics.Models.User)Session["json-site-user"]);
+
+    if (siteUser == null)
+    {
+        Response.Redirect("~/invite");
+    }
+}
+
+<!DOCTYPE html>
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+    <meta charset="utf-8" />
+    <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <!-- The above 3 meta tags *must* come first in the head; any other head content must come *after* these tags -->
+    <meta name="robots" content="noindex, nofollow">
+    <title>@ViewBag.Title - Wakanow NPS</title>
+    <!-- Bootstrap -->
+    <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet" />
+    <link rel="stylesheet" href="http://code.jquery.com/ui/1.11.4/themes/smoothness/jquery-ui.css" />
+    <link href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.6/css/bootstrap.min.css" rel="stylesheet" />
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/jqueryui/1.12.0/jquery-ui.min.css" />
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap-datetimepicker/4.17.37/css/bootstrap-datetimepicker.min.css" />
+    <link href="~/content/gds_style.css" rel="stylesheet" />
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/multiple-select/1.2.0/multiple-select.min.css" />
+    <link rel="shortcut icon" href='http://www.wakanow.com/en-ae/favicon.ico' />
+    <link rel="apple-touch-icon" sizes="57x57" href="http://static.wakanow.com/common/favicon/apple-icon-57x57.png" />
+    <link rel="apple-touch-icon" sizes="60x60" href="http://static.wakanow.com/common/favicon/apple-icon-60x60.png" />
+    <link rel="apple-touch-icon" sizes="72x72" href="http://static.wakanow.com/common/favicon/apple-icon-72x72.png" />
+    <link rel="apple-touch-icon" sizes="76x76" href="http://static.wakanow.com/common/favicon/apple-icon-76x76.png" />
+    <link rel="apple-touch-icon" sizes="114x114" href="http://static.wakanow.com/common/favicon/apple-icon-114x114.png" />
+    <link rel="apple-touch-icon" sizes="120x120" href="http://static.wakanow.com/common/favicon/apple-icon-120x120.png" />
+    <link rel="apple-touch-icon" sizes="144x144" href="http://static.wakanow.com/common/favicon/apple-icon-144x144.png" />
+    <link rel="apple-touch-icon" sizes="152x152" href="http://static.wakanow.com/common/favicon/apple-icon-152x152.png" />
+    <link rel="apple-touch-icon" sizes="180x180" href="http://static.wakanow.com/common/favicon/apple-icon-180x180.png" />
+    <link rel="icon" type="image/png" sizes="192x192" href="http://static.wakanow.com/common/favicon/android-icon-192x192.png" />
+    <link rel="icon" type="image/png" sizes="32x32" href="http://static.wakanow.com/common/favicon/favicon-32x32.png" />
+    <link rel="icon" type="image/png" sizes="96x96" href="http://static.wakanow.com/common/favicon/favicon-96x96.png" />
+    <link rel="icon" type="image/png" sizes="16x16" href="http://static.wakanow.com/common/favicon/favicon-16x16.png" />
+    <link rel="manifest" href="http://static.wakanow.com/common/favicon/manifest.json" />
+    <link rel="stylesheet" type="text/css" href="http://destinationsafrica.com/js/toastr/toastr.min.css" />
+    <meta name="msapplication-TileColor" content="#ffffff" />
+    <meta name="msapplication-TileImage" content="http://static.wakanow.com/common/favicon/ms-icon-144x144.png" />
+    <meta name="theme-color" content="#ffffff" />
+    @RenderSection("head", false)
+    <script>
+        function url(f) {
+            return "@Extensions.Models.Site.GetLeftUrl()" + f;
+        }
+
+        var siteUser = @Html.Raw(siteUser.ToJson()) || null;
+    </script>
+</head>
+<body ng-app="GenericsApp">
+    <div>
+        <div id="wrapper">
+
+            <!-- Sidebar -->
+            <div id="sidebar-wrapper">
+                <ul class="sidebar-nav">
+                    <li class="brandimg">
+                        <a href="~/edit">
+                            <img src="http://static.wakanow.com/en-ng/hotels/img/logo.png" alt="Wakanow Logo" width="150" />
+                        </a>
+                    </li>
+                    @if (siteUser.IsRoleOrAdmin("customer-feedback"))
+                    {
+                        <li class="feedback">
+                            <a href="~/customerfeedback/admin">
+                                <i class="material-icons"></i>
+                                Feedback Data
+                            </a>
+                        </li>
+                    }
+                    <li class="json-edit">
+                        <a href="" class="open_submenu">
+                            <i class="material-icons">&#xE8F6;</i> Manage Records
+                            <span class="glyphicon glyphicon-menu-down pull-right"></span>
+                        </a>
+                        <ul class="submenu">
+                            @if (siteUser.IsAdmin())
+                            {
+                                <li><a href="~/edit/newfile"><i class="material-icons">&#xE146;</i> Create New Record</a></li>
+                            }
+                            <li><a href="~/edit"><i class="material-icons">&#xE8A0;</i> View and Edit Records</a></li>
+                            <li><a href="~/edit/report"><i class="material-icons">&#xE8A0;</i> View Record(s) Tree</a></li>
+                        </ul>
+                    </li>
+                </ul>
+            </div>
+            <!-- /#sidebar-wrapper -->
+            <!-- Page Content -->
+            <div id="page-content-wrapper">
+                <div class="container-fluid">
+                    <div class="row top-row">
+                        <div class="col-sm-2">
+                            <a href="#menu-toggle" class="" id="menu-toggle"><i class="material-icons">&#xE5D2;</i> Menu</a>
+                        </div>
+                        <div class="col-sm-10 text-right pull-right">
+                            <span>Welcome, @siteUser.Email</span>
+
+                            <div class="dropdown" style="display: inline-block;">
+                                <button class="dropdown-toggle" style="border: none; background: none;" type="button" id="dropdownMenu1" data-toggle="dropdown" aria-haspopup="true" aria-expanded="true"><i class="material-icons">&#xE8B8;</i> Settings <span class="caret"></span></button>
+                                <ul class="dropdown-menu dropdown-menu-right" aria-labelledby="dropdownMenu1">
+                                    <li><a href="~/edit/changepassword">Change Password</a></li>
+                                </ul>
+                            </div>
+
+                            <a href="~/edit/signout">
+                                <i class="material-icons">&#xE8AC;</i> Logout
+                            </a>
+                        </div>
+                    </div>
+
+                    <div ng-cloak>
+                        @RenderBody()
+                    </div>
+                </div>
+            </div>
+            <!-- /#page-content-wrapper -->
+
+        </div>
+
+    </div>
+
+    <!--<script src="https://code.jquery.com/jquery-2.2.4.min.js" type="text/javascript"></script>
+    <script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/moment.js/2.13.0/moment.min.js"></script>
+    <script src="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.6/js/bootstrap.min.js" type="text/javascript"></script>
+    <script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/multiple-select/1.2.0/multiple-select.min.js"></script>
+    <script src="http://code.jquery.com/ui/1.11.4/jquery-ui.js"></script>
+    <script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/bootstrap-datetimepicker/4.17.37/js/bootstrap-datetimepicker.min.js"></script>
+
+    <script src="https://oss.maxcdn.com/html5shiv/3.7.2/html5shiv.min.js"></script>
+    <script src="https://oss.maxcdn.com/respond/1.4.2/respond.min.js"></script>
+    <script src="http://cdn.ckeditor.com/4.5.3/basic/ckeditor.js"></script>-->
+    @Scripts.Render("~/bundles/jquery")
+    <script src="http://static.wakanow.com/common/general/js/all.js" type="text/javascript"></script>
+    <script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/moment.js/2.13.0/moment.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jqueryui/1.12.0/jquery-ui.min.js" type="text/javascript"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/toastr.js/2.1.2/toastr.min.js" type="text/javascript"></script>
+    <script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/bootstrap-datetimepicker/4.17.37/js/bootstrap-datetimepicker.min.js"></script>
+    @Scripts.Render("~/bundles/angular")
+    @Scripts.Render("~/bundles/bootstrap")
+    @Scripts.Render("~/bundles/smartmenu")
+    @RenderSection("scripts", required: false)
+    <script type="text/javascript" src="~/scripts/typeahead.jquery.min.js"></script>
+    <script type="text/javascript" src="~/scripts/autocomplete.js"></script>
+
+    <!-- Menu Toggle Script -->
+    <script>
+        $(document).ready(function () {
+            var str = location.href.toLowerCase();
+            $(".sidebar-nav li a").each(function () {
+                if (str.indexOf($(this).attr("href").toLowerCase()) > -1) {
+                    $("li.activelink").removeClass("activelink");
+                    $(this).parent().addClass("activelink");
+                }
+            });
+            $("li.activelink").parents().each(function () {
+                if ($(this).is("li")) {
+                    $(this).addClass("activelink");
+                }
+            });
+        });
+
+
+        function isNumberKey(evt) {
+            var charCode = (evt.which) ? evt.which : event.keyCode
+            if (charCode > 31 && (charCode < 48 || charCode > 57))
+                return false;
+            return true;
+        }
+
+        $("#menu-toggle").click(function (e) {
+            e.preventDefault();
+            $("#wrapper").toggleClass("toggled");
+        });
+        $('.menutoggle').click(function () {
+            $(this).next('.submenu').slideToggle();
+            return false;
+        });
+        $('.close').click(function () {
+            $('.status_message').fadeOut();
+        });
+        $('.filtertoggle').click(function () {
+            $('.filterdiv').slideToggle();
+        });
+        $('.docstoggle').click(function () {
+            $(this).next('.docs').slideToggle();
+            return false;
+        });
+        $('.open_submenu').click(function () {
+            $(this).next('.submenu').slideToggle();
+            $(this).parent().siblings().children().next().slideUp();
+            return false;
+        });
+
+        $(function () {
+            $('.promodetails').hide();
+            $('.promotoggle').click(function () {
+                $('.promotoggle').not(this).parent().parent().next('.promodetails').slideUp();
+                $(this).parent().parent().next('.promodetails').slideToggle();
+                return false;
+            });
+
+            $('.from').datetimepicker({
+                format: 'DD-MM-YYYY HH:mm'
+            });
+            $('.to').datetimepicker({
+                format: 'DD-MM-YYYY HH:mm',
+                useCurrent: false //Important! See issue #1075
+            });
+            $(".from").on("dp.change", function (e) {
+                $(".from").change();
+                //$('.to').focus();
+                $('.to').data("DateTimePicker").minDate(e.date);
+            });
+            $(".to").on("dp.change", function (e) {
+                $(".to").change();
+                //$('.to').blur();
+                $('.from').data("DateTimePicker").maxDate(e.date);
+            });
+        });
+
+        toastr.options = {
+            "closeButton": true,
+            "debug": false,
+            "newestOnTop": false,
+            "progressBar": false,
+            "positionClass": "toast-top-right",
+            "preventDuplicates": false,
+            "onclick": null,
+            "showDuration": "10000",
+            "hideDuration": "1000",
+            "timeOut": "5000",
+            "extendedTimeOut": "1000",
+            "showEasing": "swing",
+            "hideEasing": "linear",
+            "showMethod": "fadeIn",
+            "hideMethod": "fadeOut"
+        }
+
+    </script>
+</body>
+</html>

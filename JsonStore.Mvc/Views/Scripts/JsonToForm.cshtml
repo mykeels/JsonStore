@@ -1,0 +1,315 @@
+﻿@{
+    Layout = null;
+}
+
+<div class="row">
+    <div class="col-sm-9">
+        <ol class="breadcrumb">
+            <li ng-repeat="crumb in breadcrumbs track by $index" ng-class="{active: '$index == breadcrumbs.length - 1'}">
+                <a class="pointer label label-info" ng-if="$index < breadcrumbs.length - 1" ng-click="setBreadCrumbsLimit($index + 1)">{{crumb}}</a>
+                <span class="label label-success" ng-if="$index == breadcrumbs.length - 1">{{crumb}}</span>
+            </li>
+        </ol>
+    </div>
+    <div class="col-sm-1">
+        <input type="button" value="Add" class="form-control btn btn-success" ng-if="firstObjectIsEmpty()" onclick="$('.attr-add').slideToggle()" />
+    </div>
+    <div class="col-sm-1" ng-if="editObject && editArray">
+        <input type="button" value="{{saveBtnName}}" class="form-control btn btn-success" ng-class="{'no-visible': autoSave}" ng-click="savecurrent()" />
+    </div>
+    <div class="col-sm-1" ng-if="editObject && editArray">
+        <input type="button" value="Reset" class="form-control btn btn-danger" ng-class="{'no-visible': autoSave}" ng-click="reset()" />
+    </div>
+</div>
+
+<div class="row">
+    <div class="col-sm-12">
+        <div class="row pad-20" ng-if="data.isEmpty()">
+            <div class="col-sm-12 label label-warning text-center pad-10">
+                This Array is Empty. Use the <label class="label label-default pointer font-16" ng-click="addItem()">Add Item</label> button to add an Object
+            </div>
+        </div>
+        <div class="row json-row" ng-repeat="item in data track by $index">
+            <!--item is a literal e.g. string, number, boolean, etc-->
+            <div class="col-sm-11 form-group" ng-if="getType(item) == 'string'">
+                <input type="text" class="form-control form-text" ng-if="item.length <= 70" ng-model="data[$index]" />
+                <textarea class="form-control form-text" ng-if="item.length > 70" ng-init="itemm = item" ng-model="itemm" ng-change="data[$index] = itemm"></textarea>
+            </div>
+            <div class="col-sm-11 form-group" ng-if="getType(item) == 'number'">
+                <input type="number" class="form-control" ng-init="itemm = item" ng-model="itemm" ng-change="data[$index] = itemm" />
+            </div>
+            <div class="col-sm-11 form-group" ng-if="getType(item) == 'date'">
+                <input type="date" class="form-control" ng-init="itemm = item" ng-model="itemm" ng-change="data[$index] = itemm" />
+            </div>
+            <div class="col-sm-11 form-group" ng-if="getType(item) == 'boolean'">
+                <label>
+                    <input type="checkbox" class="form-control" ng-init="itemm = item" ng-model="itemm" ng-change="data[$index] = itemm" />
+                    {{item ? 'True' : 'False'}}
+                </label>
+
+            </div>
+            <!--item is an object-->
+            <div class="col-sm-12" ng-if="getType(item) == 'object' && getobjectkeys(item).length == 0">
+                <div class="row pad-20">
+                    <div class="col-sm-12 label label-info text-center pad-10" style="background-color:#00AAFF">
+                        This object is Empty. Use the "Add Attribute" button to add a Property
+                    </div>
+                </div>
+            </div>
+            <div class="col-sm-11" ng-if="getType(item) == 'object'">
+                <div class="row">
+                    <div class="col-sm-2" ng-repeat="(key, value) in item track by $index" bind-height="col-bind-{{$parent.$index}}">
+                        <div class="form-group" ng-if="$parent.$index % 3 == 0">
+                            <h5>
+                                <strong>{{decodeName(key)}}</strong>
+                                <label class="label label-warning pointer remove-attr" title="Remove this Property" ng-click="removeAttribute(key)">remove</label>
+                                <label ng-if="$last" class="label label-info pointer remove-attr" title="Add New Property" onclick="$('.attr-add').slideToggle()">add</label>
+                            </h5>
+                        </div>
+                        <div class="form-group">
+                            <div ng-if="schema[$parent.$index][key] == 'string'">
+                                <div ng-if="getStringType(item[key]) == 'image'">
+                                    <image-text-edit url="item[key]" title="{{key}}"></image-text-edit>
+                                </div>
+                                <input type="{{key.toLowerCase() == 'password' ? 'password' : 'text'}}" class="form-control form-text" ng-if="(item[key].length <= 70) && (getStringType(item[key]) == 'string')" ng-model="item[key]" ng-change="resetobj(item[key], 'string')" />
+                                <textarea class="form-control form-text" ng-if="(item[key].length > 70) && (getStringType(item[key]) == 'string')" ng-model="item[key]"></textarea>
+                            </div>
+                            <div ng-if="schema[$parent.$index][key] == 'number'">
+                                <input type="number" class="form-control" ng-model="item[key]" ng-change="resetobj(item[key], 'number')" />
+                            </div>
+                            <div ng-if="schema[$parent.$index][key] == 'email'">
+                                <input type="email" class="form-control form-email" ng-model="item[key]" ng-change="resetobj(item[key], 'email')" />
+                            </div>
+                            <div ng-if="schema[$parent.$index][key] == 'phone'">
+                                <input type="tel" class="form-control form-phone" ng-model="item[key]" ng-change="resetobj(item[key], 'phone')" />
+                            </div>
+                            <div ng-if="schema[$parent.$index][key] == 'boolean'">
+                                <input type="checkbox" class="form-control" ng-model="item[key]" ng-change="resetobj(item[key], 'boolean')" />
+                            </div>
+                            <div ng-if="schema[$parent.$index][key] == 'arrayofstrings'" class="form-control edit-array">
+                                <center>
+                                    <a class="pointer" ng-click="addBreadCrumb(key, $parent.$parent.$index, schema.__roottype__)">
+                                        Edit Array ({{item[key].length}})
+                                    </a>
+                                </center>
+                            </div>
+                            <div ng-if="schema[$parent.$index][key] == 'array' || schema[$parent.$index][key] == 'object'" class="form-control edit-array" title="{{jsonfactory.stringify(item[key])}}">
+                                <center>
+                                    <a class="pointer" ng-click="addBreadCrumb(key, $parent.$parent.$index, schema.__roottype__)">
+                                        <span ng-if="item[key].length >= 0">Edit Array ({{item[key].length}})</span>
+                                        <span ng-if="getType(item[key]) == 'object'">Edit Object</span>
+                                    </a>
+                                </center>
+                            </div>
+                            <div ng-if="schema[$parent.$index][key] == 'date'">
+                                <input type="date" class="form-control" ng-model="item[key]" ng-init="item[key] = item[key].toString().toDate()" />
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="col-sm-1 form-group" ng-if="editObject">
+                <div class="row" ng-if="$parent.$index % 3 == 0">
+                    <h5 class="col-sm-12">
+                        <br />
+                    </h5>
+                </div>
+                <center>
+                    <label class="label label-danger pointer btn-danger font-16" ng-click="removeIndex($index)" title="Remove" ng-if="showModifiers">x</label>
+                    <label class="label label-success pointer btn-success font-16 bg-orange" title="Duplicate" ng-click="duplicateData($index)" 
+                           ng-if="!$parent.$last && showModifiers">o</label>
+                    <label class="label label-info pointer top-5 inline-block font-16" ng-if="$parent.$last && showModifiers" title="Add" ng-click="addItem()">+</label>
+                </center>
+            </div>
+        </div>
+        <div class="row">
+            <div class="col-sm-4">
+
+            </div>
+            <!--<div class="col-sm-1" ng-if="editArray">
+                <input type="button" value="Add Item" class="form-control btn btn-info" ng-click="addItem()" ng-if="currenttype() == 'array'" />
+            </div>
+            <div class="col-sm-2" ng-if="editObject">
+                <input type="button" value="Add Attribute" class="form-control btn btn-primary" ng-if="!data.isEmpty()" onclick="$('.attr-add').slideToggle()" />
+            </div>
+            <div class="col-sm-1">
+                <button ng-click="savecurrent()" class="form-control btn btn-success">Save</button>
+            </div>-->
+            <div class="col-sm-4">
+
+            </div>
+        </div>
+        <div class="row attr-add no-display">
+            <div class="col-sm-12 pad-10">
+                <h3>Attribute Details</h3>
+            </div>
+            <div class="col-sm-12 pad-10">
+                <input type="text" placeholder="Attribute Name" class="form-control form-text" ng-model="newattr.attrname" />
+            </div>
+            <div class="col-sm-12 pad-10">
+                <select class="form-control" ng-model="newattr.schema">
+                    <option disabled selected value="null">Schema Type</option>
+                    <option value="string">String</option>
+                    <option value="number">Number</option>
+                    <option value="boolean">Boolean</option>
+                    <option value="date">Date</option>
+                    <option value="object">Object</option>
+                    <option value="array">Array</option>
+                </select>
+            </div>
+            <div class="col-sm-6 pad-10">
+                <input type="button" class="form-control btn btn-success" value="Add this Attribute" ng-click="addAttribute()" />
+            </div>
+            <div class="col-sm-6 pad-10">
+                <input type="button" class="form-control btn btn-danger" value="Cancel" onclick="$('.attr-add').slideToggle()" />
+            </div>
+        </div>
+    </div>
+</div>
+
+
+<div ng-if="false">
+    <literal html="{{data}}"></literal>
+</div>
+
+<style>
+    .bg-orange {
+        background-color: orange;
+    }
+    .bg-orange:hover {
+        background-color: #ffd800;
+    }
+
+    .pointer {
+        cursor: pointer;
+    }
+
+    .pad-10 {
+        padding: 10px;
+    }
+
+    .pad-15 {
+        padding: 15px;
+    }
+
+    .pad-20 {
+        padding: 20px;
+    }
+
+    .down-10 {
+        margin-bottom: 10px;
+    }
+
+    .top-3 {
+        margin-top: 3px;
+    }
+
+    .top-5 {
+        margin-top: 5px;
+    }
+
+    .top-10 {
+        margin-top: 10px;
+    }
+
+    .top-20 {
+        margin-top: 20px;
+    }
+
+    .font-12 {
+        font-size: 12px;
+    }
+
+    .font-16 {
+        font-size: 16px;
+    }
+
+    .font-18 {
+        font-size: 18px;
+    }
+
+    .font-20 {
+        font-size: 20px;
+    }
+
+    .inline-block {
+        display: inline-block;
+    }
+
+    .absolute {
+        position: absolute;
+    }
+
+    .margin-10 {
+        margin: 10px;
+    }
+
+    .margin-20 {
+        margin: 20px;
+    }
+
+    .margin-15 {
+        margin: 15px;
+    }
+
+    .margin-30 {
+        margin: 30px;
+    }
+
+    .no-display {
+        display: none;
+    }
+
+    .text-center {
+        text-align: center;
+    }
+
+    json-form {
+        padding: 15px;
+    }
+
+    .header-grey {
+        background-color: #DEDEDE;
+    }
+
+    .json-row:nth-child(2n+1) input, .json-row:nth-child(2n+1) textarea, .json-row:nth-child(2n+1) .edit-array, .json-row:nth-child(2n+1) image-text-edit img {
+        border: 1px solid gold;
+    }
+
+    .remove-attr {
+        display: none;
+    }
+
+    h5:hover .remove-attr {
+        display: inline;
+    }
+
+    image-text-edit .form-group img {
+        display: none;
+    }
+
+    image-text-edit:hover img {
+        display: inline;
+        position: absolute;
+        z-index: 2;
+    }
+
+    .delete-div label {
+        opacity: 0.2;
+    }
+
+    .delete-div:hover label {
+        opacity: 1;
+    }
+
+    input {
+        background-repeat: no-repeat;
+        background-position-x: right;
+        background-size: contain;
+    }
+
+    .input-loading {
+        background-image: url('/img/default-loader.gif');
+    }
+</style>

@@ -1,0 +1,75 @@
+﻿@using Extensions
+@using Extensions.Models
+
+@{
+    Layout = "~/Views/Shared/EditLayout.cshtml";
+    ViewBag.Title = "New Record";
+}
+
+@section scripts {
+    <script type="text/javascript" src="~/scripts/jsontoformscript"></script>
+}
+
+<h2>New Record</h2>
+
+<div class="row" ng-controller="EditJsonCtrl">
+    <div class="col-sm-12">
+        <div class="row pad-15">
+            <div class="col-sm-12">
+                <label class="margin-5">Records: </label>
+                <label class="label label-primary pointer margin-5" ng-repeat="file in files.where('BackupOf', 0)" 
+                ng-click="redirect(main.url('edit?id=') + file.ID)" 
+                title="{{String.isNullOrEmpty(file.Description) ? 'Click to open' : file.Description}}">
+                    {{decodeFileName(file.Name)}}&nbsp;
+                </label>
+            </div>
+        </div>
+        <div class="row pad-15">
+            <div class="col-sm-3">
+                <h4>Record Name</h4>
+            </div>
+            <div class="col-sm-9">
+                <input class="form-control" type="text" placeholder="File Name" ng-class="{'text-error': !current.validateName()}" ng-model="current.Name" />
+                <div class="red pad-5">{{current.nameErrorMsg}}</div>
+            </div>
+        </div>
+        <div class="row pad-15">
+            <div class="col-sm-3">
+                <h4>Description</h4>
+            </div>
+            <div class="col-sm-9">
+                <textarea class="form-control" placeholder="What does this file do?" ng-model="current.Description"></textarea>
+            </div>
+        </div>
+        <div class="row pad-15">
+            <div class="col-sm-6">
+                <label>
+                    <input type="radio" name="json_input_type" value="plain-text" ng-model="input_type" /> Plain Text
+                </label>
+            </div>
+            <div class="col-sm-6">
+                <label class="pointer">
+                    <input type="radio" name="json_input_type" value="json" ng-model="input_type" /> Json
+                </label>
+            </div>
+        </div>
+        <div class="row pad-15">
+            <div class="col-sm-12 bordered" ng-show="input_type == 'json'">
+                <json-form path="'@Site.GetLeftUrl()scripts/json/default.json'" edit-object="true" edit-array="true" auto-save="true">
+                </json-form>
+            </div>
+            <div class="col-sm-12" ng-show="input_type == 'plain-text'">
+                <textarea class="form-control" placeholder='[{"ID": 0}]' ng-model="current.Contents"></textarea>
+            </div>
+        </div>
+        
+        <div class="row pad-15">
+            <div class="col-sm-5">
+                <select class="form-control" ng-model="current.UserRoleID" ng-options="role.ID as role.Name for role in userroles"></select>
+            </div>
+            <div class="col-sm-7" style="text-align:right;">
+                <input type="button" class="btn btn-primary" value="Submit Data" ng-click="current.submit()" />
+            </div>
+        </div>
+    </div>
+</div>

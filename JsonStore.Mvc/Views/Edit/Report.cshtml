@@ -1,0 +1,28 @@
+﻿@using Extensions
+@using Extensions.Models
+
+@{
+    Layout = "~/Views/Shared/EditLayout.cshtml";
+    ViewBag.Title = "Report";
+}
+
+@section scripts {
+    <link href="~/Content/angular-tree.css" rel="stylesheet" />
+}
+
+<h2>Record History: </h2>
+
+<div class="row" ng-controller="ReportCtrl">
+    <div class="col-sm-12 text-center greybck pad-20" ng-if="files.isEmpty()">
+        <h4>We are sorry! But, there are no records to be displayed at this time.</h4>
+        <p>You could <a href="~/edit/newfile">Create a New Record</a> though.</p>
+    </div>
+    <div class="col-sm-12">
+        <div data-angular-treeview="true"
+             data-tree-model="files"
+             data-node-id="ID"
+             data-node-label="Name"
+             data-node-children="BackUps">
+        </div>
+    </div>
+</div>
